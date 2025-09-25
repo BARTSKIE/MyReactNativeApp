@@ -1,0 +1,186 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Feather as Icon } from "@expo/vector-icons";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth} from './firebase';
+
+export default function LoginScreen({ navigation }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+  // Client-side validation
+  if (!email && !password) {
+    Alert.alert("Login Failed", "Please enter your email and password.");
+    return;
+  }
+
+  if (!email) {
+    Alert.alert("Login Failed", "Please enter your email address.");
+    return;
+  }
+
+  if (!password) {
+    Alert.alert("Login Failed", "Please enter your password.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    if (!user.emailVerified) {
+      Alert.alert("Email not verified", "Please verify your email before logging in.");
+      await signOut(auth);
+      return;
+    }
+
+    console.log("Login successful:", user.email);
+    navigation.navigate('Home');
+  } catch (error) {
+    let errorMessage = "An unknown error occurred. Please try again.";
+
+    switch (error.code) {
+      case 'auth/invalid-email':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        errorMessage = 'Invalid email or password. Please try again.';
+        break;
+      case 'auth/too-many-requests':
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+        break;
+      default:
+        errorMessage = error.message;
+        break;
+    }
+
+    Alert.alert("Login Failed", errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  return (
+    <LinearGradient colors={['#e0e0e0ff', '#fffff4ff']} style={styles.container}>
+      <Text style={styles.title}>Welcome Don Elmer's Inn And Resort👋</Text>
+      <Text style={styles.subtitle}>Login to your account</Text>
+
+      {/* Email Input */}
+      <View style={styles.inputContainer}>
+        <Icon name="mail" size={20} color="#C8A951" style={styles.icon} />
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor="#999"
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+      </View>
+
+      {/* Password Input */}
+      <View style={styles.inputContainer}>
+        <Icon name="lock" size={20} color="#C8A951" style={styles.icon} />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#999"
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+      </View>
+
+      {/* Login Button */}
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <LinearGradient colors={["#C8A951", "#B89A48"]} style={styles.gradientBtn}>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Link to Register */}
+      <TouchableOpacity onPress={() => navigation.replace("Register")}>
+        <Text style={styles.link}>Don't have an account? Register</Text>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 25,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#222",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 30,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    elevation: 2,
+  },
+  icon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    color: "#333",
+    fontSize: 16,
+  },
+  button: {
+    borderRadius: 12,
+    overflow: "hidden",
+    marginTop: 10,
+  },
+  gradientBtn: {
+    paddingVertical: 15,
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  link: {
+    marginTop: 20,
+    textAlign: "center",
+    fontSize: 14,
+    color: "#C8A951",
+    fontWeight: "600",
+  },
+});
